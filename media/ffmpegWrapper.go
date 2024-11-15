@@ -60,8 +60,7 @@ func (w *FfmpegWrapper) Unmerge(inputVideoPath string, outputVideoPath string, o
 		inputValue = inputAbsValue
 	}
 
-	slog.Info("[MERGE] Start unmerge audio and video from " + inputValue)
-
+	slog.Info("[MEDIA] Start unmerge audio and video from " + inputValue)
 	args := []string{"-i", inputVideoPath, "-an", "-c:v", "copy", outputVideoPath, "-vn", "-c:a", "copy", outputAudioPath, "-y"}
 	cmd := exec.Command("ffmpeg", args...)
 

@@ -8,7 +8,7 @@ import (
 )
 
 func TestCoquittsWithDefaultModel(t *testing.T) {
-	var s Speeacher = NewCoquiTTS()
+	var s Speecher = NewCoquiTTS()
 	outPath, err := s.Speech("Mensagem para ser falada pelo TTS")
 	assert.Nil(t, err, "err should be nil in speech return")
 	assert.NotNil(t, outPath, "outPath should be not nil in Speech return")
@@ -22,7 +22,7 @@ func TestCoquittsWithDefaultModel(t *testing.T) {
 }
 
 func TestCoquittsWithYourTTSModel(t *testing.T) {
-	var s Speeacher = NewCoquiTTS(
+	var s Speecher = NewCoquiTTS(
 		WithModelName("tts_models/multilingual/multi-dataset/your_tts"),
 		WithLanguageIdx("pt-br"),
 	)

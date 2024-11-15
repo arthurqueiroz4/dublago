@@ -1,5 +1,5 @@
 package tts
 
-type Speeacher interface {
+type Speecher interface {
 	Speech(message string) (string, error)
 }
