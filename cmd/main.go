@@ -1,15 +1,19 @@
 package main
 
 import (
-	"log/slog"
-	"time"
+	"log"
+	"tradutor-dos-crias/auth"
 	"tradutor-dos-crias/caption"
 	"tradutor-dos-crias/media"
 	"tradutor-dos-crias/pipeline"
 	"tradutor-dos-crias/transcript"
 	"tradutor-dos-crias/translator"
 	"tradutor-dos-crias/tts"
+
+	"github.com/gofiber/fiber/v3"
 )
+
+var Pipeline *pipeline.Pipeline
 
 func main() {
 	mediaHandler := &media.FfmpegWrapper{}
@@ -18,8 +22,11 @@ func main() {
 	tts := tts.NewCoquiTTS()
 	subtitler := caption.NewStablets()
 
-	pipeline := pipeline.NewPipeline(transcripter, mediaHandler, translator, tts, subtitler)
-	start := time.Now()
-	pipeline.Run("pipe/videoDubbed.mp4")
-	slog.Info("[TIME SPEND] " + time.Since(start).String())
+	Pipeline = pipeline.NewPipeline(transcripter, mediaHandler, translator, tts, subtitler)
+
+	app := fiber.New()
+
+	app.Get("/api/auth/callback", auth.Callback)
+
+	log.Fatal(app.Listen(":4000"))
 }
