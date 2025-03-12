@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS "user" (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE,
+  name VARCHAR(100),
+  sso_id VARCHAR(50)
+);
