@@ -1,23 +1,15 @@
 package auth
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"log/slog"
-	"net/http"
+	"errors"
+	"fmt"
+	"tradutor-dos-crias/singleton"
+	"tradutor-dos-crias/user"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-var (
-	clientId         = "343946256424-1qh1f475m4eofq5i4g0m5tk38pnp1h0l.apps.googleusercontent.com"
-	clientSecret     = ""
-	redirectUri      = "http://localhost:4000/api/auth/callback"
-	frontRedirectUrl = "http://localhost:3000/dashboard"
-	tokenUrl         = "https://oauth2.googleapis.com/token"
-	userInfoUrl      = "https://www.googleapis.com/oauth2/v1/userinfo"
-)
+var frontRedirectUrl = "http://localhost:3000/dashboard"
 
 func Callback(c fiber.Ctx) error {
 	authCode := c.Query("code")
@@ -27,71 +19,28 @@ func Callback(c fiber.Ctx) error {
 		})
 	}
 
-	resp, err := http.PostForm(tokenUrl, map[string][]string{
-		"client_id":     {clientId},
-		"client_secret": {clientSecret},
-		"code":          {authCode},
-		"redirect_uri":  {redirectUri},
-		"grant_type":    {"authorization_code"},
-	})
+	tokenResponse, err := GetAccessTokenByAuthorizationCode(authCode)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Erro ao trocar código por token",
-		})
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != 200 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":             "Erro ao comunicar-se com API do Google",
-			"messageFromGoogle": string(body),
-		})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	slog.Info("Response from /token",
-		"body", string(body))
-
-	var tokenResponse struct {
-		AccessToken  string `json:"access_token"`
-		TokenType    string `json:"token_type"`
-		ExpiresIn    int    `json:"expires_in"`
-		RefreshToken string `json:"refresh_token"`
-	}
-
-	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&tokenResponse); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Erro ao decodificar resposta do Google",
-		})
-	}
-
-	req, err := http.NewRequest("GET", userInfoUrl, nil)
+	userInfo, err := GetUserInfoByAccessToken(tokenResponse.AccessToken)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Erro na criação da request para API de userinfo"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	req.Header.Add("Authorization", "Bearer "+tokenResponse.AccessToken)
-
-	client := &http.Client{}
-
-	resp, err = client.Do(req)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Erro na chamada da request para API de userinfo"})
-	}
-	defer resp.Body.Close()
-
-	var userInfo map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Erro ao decodificar request para API de userinfo"})
+	u := &user.User{
+		Email: userInfo["email"].(string),
+		Name:  userInfo["name"].(string),
+		SsoId: userInfo["id"].(string),
 	}
 
-	slog.Info("Authentication completed",
-		"username", userInfo["name"],
-		"email", userInfo["email"],
-		"sso_id", userInfo["id"])
+	err = singleton.UserService.Create(u)
+	if err != nil && !errors.Is(err, user.ErrUserAlreadyExists) {
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
 
-	c.Response().Header.Add("Location", frontRedirectUrl)
+	c.Response().Header.Add("Location", fmt.Sprintf("%s?access_token=%s", frontRedirectUrl, tokenResponse.AccessToken))
 	c.Status(301)
 	return nil
 }
