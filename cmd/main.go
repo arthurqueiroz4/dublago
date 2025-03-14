@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"log/slog"
 	"tradutor-dos-crias/auth"
 	"tradutor-dos-crias/caption"
+	"tradutor-dos-crias/controller"
 	"tradutor-dos-crias/database"
 	"tradutor-dos-crias/media"
 	"tradutor-dos-crias/middleware"
@@ -41,10 +41,7 @@ func main() {
 
 	privateRoute := app.Group("/api", middleware.Authentication)
 
-	privateRoute.Get("", func(c fiber.Ctx) error {
-		slog.Info("Reached here")
-		return c.Status(200).JSON(fiber.Map{"User": "Auth"})
-	})
+	privateRoute.Get("/me", controller.Me, middleware.DefaultAuthorization)
 
 	log.Fatal(app.Listen(":4000"))
 }

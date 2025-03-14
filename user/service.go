@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"tradutor-dos-crias/database"
 
@@ -28,7 +29,11 @@ func (us *UserService) Create(user *User) error {
 
 func (us *UserService) GetByEmail(email string) (*User, error) {
 	var user User
-	database.Pool.Query(context.Background(), getByEmailSql, email)
+	err := database.Pool.QueryRow(context.Background(), getByEmailSql, email).Scan(&user.ID, &user.Email, &user.Name, &user.SsoId)
+	if err != nil {
+		return nil, errors.New("Error on QueryRow [GetByEmail]")
+	}
+	return &user, nil
 }
 
 func handleError(user *User, err error) error {

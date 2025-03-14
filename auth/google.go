@@ -71,6 +71,10 @@ func GetUserInfoByAccessToken(accessToken string) (map[string]any, error) {
 		return nil, errors.New("erro ao decodificar request para API de userinfo")
 	}
 
+	if userInfo["email"] == nil {
+		return nil, errors.New("User not found by accessToken")
+	}
+
 	slog.Info("Authentication completed",
 		"username", userInfo["name"],
 		"email", userInfo["email"],
