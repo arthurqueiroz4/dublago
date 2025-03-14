@@ -72,7 +72,7 @@ func GetUserInfoByAccessToken(accessToken string) (map[string]any, error) {
 	}
 
 	if userInfo["email"] == nil {
-		return nil, errors.New("User not found by accessToken")
+		return nil, errors.New("user not found by accessToken")
 	}
 
 	slog.Info("Authentication completed",

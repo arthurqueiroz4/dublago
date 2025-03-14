@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"strings"
 	"tradutor-dos-crias/auth"
 	"tradutor-dos-crias/singleton"
 
@@ -9,6 +10,12 @@ import (
 
 func Authentication(c fiber.Ctx) error {
 	accessToken := c.Get("Authorization")
+
+	if !strings.Contains(accessToken, "Bearer ") {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "bearer token incorrect"})
+	}
+	accessToken = strings.Split(accessToken, " ")[1]
+
 	userInfo, err := auth.GetUserInfoByAccessToken(accessToken)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "failed to get user info"})

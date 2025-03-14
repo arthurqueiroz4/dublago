@@ -31,7 +31,7 @@ func (us *UserService) GetByEmail(email string) (*User, error) {
 	var user User
 	err := database.Pool.QueryRow(context.Background(), getByEmailSql, email).Scan(&user.ID, &user.Email, &user.Name, &user.SsoId)
 	if err != nil {
-		return nil, errors.New("Error on QueryRow [GetByEmail]")
+		return nil, errors.New("error on QueryRow [GetByEmail]")
 	}
 	return &user, nil
 }
