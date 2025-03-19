@@ -1,5 +1,5 @@
 package tts
 
 type Speecher interface {
-	Speech(message string) (string, error)
+	Speech(message string, speakerWavPath string) (string, error)
 }

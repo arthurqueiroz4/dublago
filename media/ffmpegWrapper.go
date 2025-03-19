@@ -187,3 +187,25 @@ func getMediaDuration(fPath string) (float64, error) {
 
 	return secondsDuration, nil
 }
+
+func (w *FfmpegWrapper) ConvertToWav(inputAudioPath string, wavAudioPath string) error {
+	args := []string{"-i", inputAudioPath, "-f", "wav", wavAudioPath}
+	cmd := exec.Command("ffmpeg", args...)
+
+	var stdErr bytes.Buffer
+	cmd.Stderr = &stdErr
+
+	err := cmd.Run()
+	if err != nil {
+		slog.Error("[MEDIA] Error on convert to wav: " + err.Error())
+		ffmpegErrorMessage, hasErrorMessage := handleFfmpegLog(stdErr.String(), ffmpegErrorRegex)
+		if hasErrorMessage {
+			slog.Error("[MEDIA] Ffmpeg error message: \n" + ffmpegErrorMessage)
+		}
+
+		return err
+	}
+
+	slog.Info("[MEDIA] Successfully converted to wav on path " + wavAudioPath)
+	return nil
+}

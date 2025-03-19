@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"log/slog"
 	"os"
 	"path/filepath"
 	"tradutor-dos-crias/caption"
@@ -20,6 +19,7 @@ type Pipeline struct {
 	translator   translator.Translator
 	speaker      tts.Speecher
 	subtitler    caption.Subtitler
+	downloader   input.Downloader
 }
 
 func NewPipeline(transcripter transcript.Transcripter,
@@ -27,6 +27,7 @@ func NewPipeline(transcripter transcript.Transcripter,
 	translator translator.Translator,
 	speaker tts.Speecher,
 	subtitler caption.Subtitler,
+	downloader input.Downloader,
 ) *Pipeline {
 	i := &Pipeline{
 		transcripter,
@@ -34,25 +35,27 @@ func NewPipeline(transcripter transcript.Transcripter,
 		translator,
 		speaker,
 		subtitler,
+		downloader,
 	}
 
 	return i
 }
 
-func (i *Pipeline) Run(outputVideoPath string) error {
+func (i *Pipeline) RunWithYoutube(url, outputVideoPath string) error {
+	outputFolderDefault, err := filepath.Abs("pipe/")
+	if err != nil {
+		return err
+	}
 	filesToRemove := make([]string, 0)
 	defer removeTmpFiles(&filesToRemove)
 
-	url, err := input.Parse()
-	if err != nil {
-		slog.Error("[INPUT] Error in getting input from cli. Err: " + err.Error())
-		return err
-	}
-
-	inputVideoPath, inputAudioPath := input.Download(url)
+	inputVideoPath, inputAudioPath := i.downloader.Download(url)
 	filesToRemove = append(filesToRemove, inputVideoPath, inputAudioPath)
 
-	outputFolderDefault, err := filepath.Abs("pipe/")
+	wavAudioPath := outputFolderDefault + "/" + uuid.NewString() + ".wav"
+	filesToRemove = append(filesToRemove, wavAudioPath)
+
+	err = i.mediaHandler.ConvertToWav(inputAudioPath, wavAudioPath)
 	if err != nil {
 		return err
 	}
@@ -68,7 +71,7 @@ func (i *Pipeline) Run(outputVideoPath string) error {
 		return err
 	}
 
-	dubbedAudio, err := i.speaker.Speech(translatedText)
+	dubbedAudio, err := i.speaker.Speech(translatedText, wavAudioPath)
 	if err != nil {
 		return err
 	}
@@ -87,6 +90,71 @@ func (i *Pipeline) Run(outputVideoPath string) error {
 	}
 	filesToRemove = append(filesToRemove, subtitlesPath)
 	_, err = i.mediaHandler.MergeSubtitle(tmpDubbedFileName, subtitlesPath, outputVideoPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Pipeline) RunWithLocalVideo(videoPath, outputVideoPath string) error {
+	filesToRemove := make([]string, 0)
+	filesToRemove = append(filesToRemove, videoPath)
+	defer removeTmpFiles(&filesToRemove)
+
+	outputFolderDefault, err := filepath.Abs("pipe/")
+	if err != nil {
+		return err
+	}
+
+	unmergedVideoPath := outputFolderDefault + "/" + uuid.NewString() + ".mp4"
+	unmergedAudioPath := outputFolderDefault + "/" + uuid.NewString() + ".mp4"
+	filesToRemove = append(filesToRemove, unmergedVideoPath, unmergedAudioPath)
+
+	err = i.mediaHandler.Unmerge(videoPath, unmergedVideoPath, unmergedAudioPath)
+	if err != nil {
+		return err
+	}
+
+	text, err := i.transcripter.Transcript(unmergedAudioPath)
+	filesToRemove = append(filesToRemove, "audio.txt")
+	if err != nil {
+		return err
+	}
+
+	translatedText, err := i.translator.Translate(text)
+	if err != nil {
+		return err
+	}
+
+	unmergedAudioWavPath := outputFolderDefault + "/" + uuid.NewString() + ".mp4"
+	filesToRemove = append(filesToRemove, unmergedAudioPath)
+
+	err = i.mediaHandler.ConvertToWav(unmergedAudioPath, unmergedAudioWavPath)
+	if err != nil {
+		return err
+	}
+
+	dubbedAudio, err := i.speaker.Speech(translatedText, unmergedAudioWavPath)
+	if err != nil {
+		return err
+	}
+	filesToRemove = append(filesToRemove, dubbedAudio)
+
+	err = i.mediaHandler.Merge(unmergedVideoPath, dubbedAudio, outputVideoPath)
+	if err != nil {
+		return err
+	}
+
+	// subtitlesPath, err := i.subtitler.GenerateSubtitle(outputVideoPath)
+	// if err != nil {
+	// 	return err
+	// }
+	// filesToRemove = append(filesToRemove, subtitlesPath)
+	// _, err = i.mediaHandler.MergeSubtitle(outputVideoPath, subtitlesPath, outputVideoPath)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

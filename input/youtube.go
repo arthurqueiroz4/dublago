@@ -14,7 +14,13 @@ const (
 	bestaudio string = "bestaudio"
 )
 
-func Download(url string) (string, string) {
+type YouTube struct{}
+
+func New() *YouTube {
+	return &YouTube{}
+}
+
+func (y *YouTube) Download(url string) (string, string) {
 	slog.Info("[YOUTUBE] Downloading video and audio with 'yt-dlp'")
 
 	path, _ := filepath.Abs("pipe/")
@@ -24,15 +30,15 @@ func Download(url string) (string, string) {
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 
-	go downloadStream(url, bestvideo, videoPath, wg)
-	go downloadStream(url, bestaudio, audioPath, wg)
+	go y.downloadStream(url, bestvideo, videoPath, wg)
+	go y.downloadStream(url, bestaudio, audioPath, wg)
 
 	wg.Wait()
 
 	return videoPath, audioPath
 }
 
-func downloadStream(url, format, outputPath string, wg *sync.WaitGroup) {
+func (y *YouTube) downloadStream(url, format, outputPath string, wg *sync.WaitGroup) {
 	slog.Info("[YOUTUBE] Downloading " + format + " by " + url)
 	defer func() {
 		slog.Info("[YOUTUBE] Download finished: " + format + " by " + url)

@@ -1,4 +1,4 @@
-coqui-tts==0.24.3
+coqui-tts==0.26.0
 sentencepiece==0.2.0
 sacremoses==0.1.1
 openai-whisper==20240930

@@ -52,7 +52,7 @@ func WithLanguageIdx(languageIdx string) Option {
 	}
 }
 
-func (c *CoquiTTS) Speech(message string) (string, error) {
+func (c *CoquiTTS) Speech(message, speakerWavPath string) (string, error) {
 	slog.Info("[TTS] Generating speech now")
 
 	t := time.Now()
@@ -64,10 +64,16 @@ func (c *CoquiTTS) Speech(message string) (string, error) {
 	}
 
 	text := strings.ReplaceAll(message, ".", `\n`)
+	slog.Info("[TTS] Model Name: " + c.modelName)
+	slog.Info("[TTS] Text: " + text)
+	slog.Info("[TTS] Speaker Wav Path: " + speakerWavPath)
+	slog.Info("[TTS] Out Path: " + outPath)
+	slog.Info("[TTS] Language Index: " + c.languageIdx)
+
 	cmd := exec.Command("tts",
 		"--model_name", c.modelName,
 		"--text", text,
-		"--speaker_wav", c.speakerWavPath,
+		"--speaker_wav", speakerWavPath,
 		"--out_path", outPath,
 		"--language_idx", c.languageIdx)
 
