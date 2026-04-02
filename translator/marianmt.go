@@ -26,7 +26,13 @@ func (mt MarianMT) Translate(text string) (string, error) {
 		return "", err
 	}
 
-	cmd := exec.Command("python",
+	// Use python do virtualenv se existir, senão use python do sistema
+	pythonPath := "./.venv/bin/python"
+	if _, err := os.Stat(pythonPath); os.IsNotExist(err) {
+		pythonPath = "python3"
+	}
+
+	cmd := exec.Command(pythonPath,
 		scriptPath,
 		"--text", fmt.Sprintf(`"%s"`, text),
 		"--output", outPath)

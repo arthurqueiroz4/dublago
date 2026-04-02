@@ -3,6 +3,7 @@ package caption
 import (
 	"bytes"
 	"log/slog"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -45,7 +46,13 @@ func (s *Stablets) GenerateSubtitle(path string) (string, error) {
 	outputPath := strings.TrimSuffix(path, filepath.Ext(path)) + ".srt"
 	args := []string{"--model", s.model, "--language", s.language, "--word_level", "true", "--segment_level", "true", path, "-o", outputPath}
 
-	cmd := exec.Command("stable-ts", args...)
+	// Usar stable-ts do virtualenv se existir
+	stableTsPath := "./.venv/bin/stable-ts"
+	if _, err := os.Stat(stableTsPath); os.IsNotExist(err) {
+		stableTsPath = "stable-ts"
+	}
+
+	cmd := exec.Command(stableTsPath, args...)
 
 	var stdOut bytes.Buffer
 	var stdErr bytes.Buffer

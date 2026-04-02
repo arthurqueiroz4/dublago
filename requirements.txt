@@ -1,5 +1,10 @@
+setuptools<81
+wheel
+
 coqui-tts==0.26.0
 sentencepiece==0.2.0
 sacremoses==0.1.1
 openai-whisper==20240930
 stable-ts==2.17.5
+transformers==4.47.0
+torch==2.2.0

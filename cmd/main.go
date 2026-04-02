@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"tradutor-dos-crias/auth"
+	"tradutor-dos-crias/checker"
 	"tradutor-dos-crias/config"
 	"tradutor-dos-crias/controller"
 	"tradutor-dos-crias/database"
@@ -15,7 +16,13 @@ import (
 )
 
 func main() {
+	// Carregar variáveis de ambiente primeiro
 	config.LoadEnvironment()
+
+	// Verificar todas as dependências antes de iniciar
+	if err := checker.RunAllChecks(); err != nil {
+		log.Fatal(err)
+	}
 	err := database.ConnectDatabase()
 	if err != nil {
 		log.Fatal(err)

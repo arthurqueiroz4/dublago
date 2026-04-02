@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -70,7 +71,13 @@ func (c *CoquiTTS) Speech(message, speakerWavPath string) (string, error) {
 	slog.Info("[TTS] Out Path: " + outPath)
 	slog.Info("[TTS] Language Index: " + c.languageIdx)
 
-	cmd := exec.Command("tts",
+	// Usar tts do virtualenv se existir
+	ttsPath := "./.venv/bin/tts"
+	if _, err := os.Stat(ttsPath); os.IsNotExist(err) {
+		ttsPath = "tts"
+	}
+
+	cmd := exec.Command(ttsPath,
 		"--model_name", c.modelName,
 		"--text", text,
 		"--speaker_wav", speakerWavPath,
@@ -78,7 +85,12 @@ func (c *CoquiTTS) Speech(message, speakerWavPath string) (string, error) {
 		"--language_idx", c.languageIdx)
 
 	var stderr bytes.Buffer
+	var stdout bytes.Buffer
 	cmd.Stderr = &stderr
+	cmd.Stdout = &stdout
+
+	// Aceitar automaticamente os Termos de Serviço do modelo
+	cmd.Stdin = strings.NewReader("y\n")
 
 	err = cmd.Run()
 	if err != nil {
